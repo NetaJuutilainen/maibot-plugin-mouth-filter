@@ -13,6 +13,10 @@ MaiBot（麦麦）行为矫正插件「不要说辣个啦」：每次回复发�
 
 ## 效果演示
 
+<p align="center">
+  <img src="assets/showcase.png" width="420" alt="麦麦不要说辣个啦 立绘"/>
+</p>
+
 **逐词打码 + 占位符池随机**（每个消音位独立从池里随机选，同句可混排）：
 
 ```
@@ -60,7 +64,9 @@ plugins/NetaJuutilainen_mai-mouth-filter/
 ├── _manifest.json
 ├── plugin.py
 ├── mouth_filter_core.py
-└── assets/base_words.json
+└── assets/
+    ├── base_words.json
+    └── icon.png
 ```
 
 放进目录后 Runner 自动发现并加载（正在运行的实例会热重载，无需重启）。

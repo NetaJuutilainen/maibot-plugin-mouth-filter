@@ -1,7 +1,5 @@
 <div align="center">
-  <!-- logo 到位后取消下一行注释（图片放 assets/icon.png）：
   <img src="assets/icon.png" width="128" alt="麦麦不要说辣个啦图标"/>
-  -->
   <h1>麦麦不要说辣个啦</h1>
   <p><b>Neuro-sama 式嘴替打码</b> —— 该说的照说，脏的地方自动消音</p>
 </div>

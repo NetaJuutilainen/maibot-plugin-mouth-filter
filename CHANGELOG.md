@@ -2,6 +2,12 @@
 
 > 版本号策略：**测试期一律 0.x**（未正式上线），正式发布时才升 1.0.0。
 
+## 0.2.5（2026-10-26）
+
+- 新增**插件 logo**：`assets/icon.png`（图一 filtered. chibi，1024×1024）
+- `_manifest.json` 增加 `display.icon` 节（`{"type": "local", "value": "assets/icon.png"}`）
+- README 头部点亮图标（128px 居中，替代原注释占位）
+
 ## 0.2.4（2026-10-26）
 
 - 默认占位符池 `*Filter*` → `*Filtered*`（与常见 "filtered." 打码梗对齐）

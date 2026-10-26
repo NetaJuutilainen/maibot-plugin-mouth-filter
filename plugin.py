@@ -1,4 +1,4 @@
-"""麦麦嘴替过滤器（Neuro-sama 式嘴替打码）。
+"""麦麦不要说辣个啦（Neuro-sama 式嘴替打码插件）。
 
 挂 ``maisaka.reply.before_post_process``：麦麦回复正文在拆分/错别字等
 后处理**之前**经过本插件，命中的脏话/过分词句被替换为占位符
@@ -46,7 +46,7 @@ compile_rules = _core.compile_rules
 filter_text = _core.filter_text
 is_effectively_empty = _core.is_effectively_empty
 
-SUPPORTED_CONFIG_VERSION = "0.2.2"  # 与 manifest version 保持同步（测试期 0.x，正式上线才 1.0.0）
+SUPPORTED_CONFIG_VERSION = "0.2.3"  # 与 manifest version 保持同步（测试期 0.x，正式上线才 1.0.0）
 
 
 # ---------------------------------------------------------------------------
@@ -196,7 +196,7 @@ class MouthFilterPlugin(MaiBotPlugin):
             self.ctx.logger.warning("%s（已退化为仅用 WebUI 附加词表）", e)
         cfg = self.config.filter
         self.ctx.logger.info(
-            "麦麦嘴替过滤器已加载：基础词表 %d 词 / %d 正则，WebUI 附加 %d 词 / %d 正则，占位符池 %r，整句吞噬概率 %.0f%%",
+            "麦麦不要说辣个啦（嘴替过滤器）已加载：基础词表 %d 词 / %d 正则，WebUI 附加 %d 词 / %d 正则，占位符池 %r，整句吞噬概率 %.0f%%",
             len(self._store.words), len(self._store.regexes),
             len(cfg.words or []), len(cfg.regexes or []),
             list(cfg.replacements or []),
@@ -267,7 +267,7 @@ class MouthFilterPlugin(MaiBotPlugin):
         return {"action": "continue", "modified_kwargs": kwargs}
 
     async def on_unload(self) -> None:
-        self.ctx.logger.info("麦麦嘴替过滤器已卸载")
+        self.ctx.logger.info("麦麦不要说辣个啦（嘴替过滤器）已卸载")
 
     async def on_config_update(self, scope: str, config_data: dict[str, Any], version: str) -> None:
         # 词表每次 Hook 现读 config + data 文件（mtime 检查），无需重建组件

@@ -17,7 +17,7 @@ from mouth_filter_core import (
 )
 
 REPL = "*已过滤*"  # 单元素池 = 确定性
-POOL = ["*已过滤*", "*Filter*"]
+POOL = ["*已过滤*", "*Filtered*"]
 _passed = 0
 _failed: list[str] = []
 

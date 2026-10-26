@@ -46,7 +46,7 @@ compile_rules = _core.compile_rules
 filter_text = _core.filter_text
 is_effectively_empty = _core.is_effectively_empty
 
-SUPPORTED_CONFIG_VERSION = "0.2.3"  # 与 manifest version 保持同步（测试期 0.x，正式上线才 1.0.0）
+SUPPORTED_CONFIG_VERSION = "0.2.4"  # 与 manifest version 保持同步（测试期 0.x，正式上线才 1.0.0）
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ class FilterSection(PluginConfigBase):
     replacements: list[str] = _ui_field(
         "替换占位符池",
         "每个被消音的位置随机选一个，如 *已过滤* / *Filter* / ▇▇▇",
-        default_factory=lambda: ["*已过滤*", "*Filter*"],
+        default_factory=lambda: ["*已过滤*", "*Filtered*"],
     )
     whole_reply_chance: float = _ui_field(
         "整句吞噬概率",

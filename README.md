@@ -1,15 +1,15 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center" valign="middle">
+      <td align="center" valign="middle" style="padding-right:24px;">
         <img src="https://raw.githubusercontent.com/NetaJuutilainen/maibot-plugin-mouth-filter/main/assets/icon.png" width="128" alt="麦麦不要说辣个啦图标"/>
       </td>
       <td align="center" valign="middle">
-        <img src="https://raw.githubusercontent.com/NetaJuutilainen/maibot-plugin-mouth-filter/main/assets/chibi.jpg" width="128" alt="麦麦不要说辣个啦（换装版）"/>
-      </td>
-      <td align="left" valign="middle">
         <h1>麦麦不要说辣个啦</h1>
         <p><b>Neuro-sama 式嘴替打码</b> —— 该说的照说，脏的地方自动消音</p>
+      </td>
+      <td align="center" valign="middle" style="padding-left:24px;">
+        <img src="https://raw.githubusercontent.com/NetaJuutilainen/maibot-plugin-mouth-filter/main/assets/chibi.jpg" width="128" alt="麦麦不要说辣个啦（换装版）"/>
       </td>
     </tr>
   </table>
@@ -19,7 +19,7 @@ MaiBot（麦麦）行为矫正插件「不要说辣个啦」：每次回复发�
 自动替换成占位符，效果对标 AI 主播 Neuro-sama 的 TTS 消音。**词表驱动、零 token
 成本、微秒级延迟**——不调 LLM、不改麦麦的想法，只负责出口时"哔——"。
 
-- 插件 ID：`NetaJuutilainen.mai-mouth-filter`（**正式版 1.0.1**，manifest v2）
+- 插件 ID：`NetaJuutilainen.mai-mouth-filter`（**正式版 1.0.0**，manifest v2）
 - 宿主 1.3.0 ~ 1.3.99 ｜ SDK 2.5.0 ~ 2.16.99 ｜ **零第三方依赖**（纯标准库） ｜ MIT
 
 ## 效果演示

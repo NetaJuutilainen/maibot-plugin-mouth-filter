@@ -46,7 +46,7 @@ compile_rules = _core.compile_rules
 filter_text = _core.filter_text
 is_effectively_empty = _core.is_effectively_empty
 
-SUPPORTED_CONFIG_VERSION = "1.0.0"  # 与 manifest version 保持同步（1.0.0 = 正式版）
+SUPPORTED_CONFIG_VERSION = "1.0.1"  # 与 manifest version 保持同步（1.0.x = 正式版）
 
 
 # ---------------------------------------------------------------------------

@@ -4,6 +4,9 @@
       <td align="center" valign="middle">
         <img src="https://raw.githubusercontent.com/NetaJuutilainen/maibot-plugin-mouth-filter/main/assets/icon.png" width="128" alt="麦麦不要说辣个啦图标"/>
       </td>
+      <td align="center" valign="middle">
+        <img src="https://raw.githubusercontent.com/NetaJuutilainen/maibot-plugin-mouth-filter/main/assets/chibi.jpg" width="128" alt="麦麦不要说辣个啦（换装版）"/>
+      </td>
       <td align="left" valign="middle">
         <h1>麦麦不要说辣个啦</h1>
         <p><b>Neuro-sama 式嘴替打码</b> —— 该说的照说，脏的地方自动消音</p>
@@ -16,7 +19,7 @@ MaiBot（麦麦）行为矫正插件「不要说辣个啦」：每次回复发�
 自动替换成占位符，效果对标 AI 主播 Neuro-sama 的 TTS 消音。**词表驱动、零 token
 成本、微秒级延迟**——不调 LLM、不改麦麦的想法，只负责出口时"哔——"。
 
-- 插件 ID：`NetaJuutilainen.mai-mouth-filter`（**正式版 1.0.0**，manifest v2）
+- 插件 ID：`NetaJuutilainen.mai-mouth-filter`（**正式版 1.0.1**，manifest v2）
 - 宿主 1.3.0 ~ 1.3.99 ｜ SDK 2.5.0 ~ 2.16.99 ｜ **零第三方依赖**（纯标准库） ｜ MIT
 
 ## 效果演示
@@ -70,6 +73,7 @@ plugins/NetaJuutilainen_mai-mouth-filter/
 ├── mouth_filter_core.py
 └── assets/
     ├── base_words.json
+    ├── chibi.jpg
     ├── icon.png
     └── showcase.png
 ```
@@ -128,7 +132,7 @@ python tests/test_core.py   # 34 条离线单测，零依赖直接跑
 - `mouth_filter_core.py`：匹配纯函数（零 SDK 依赖）
 - `plugin.py`：Hook / 配置模型 / 词表存储装配
 
-## 彩蛋
+## 关于 `filtered.`
 
 > 灵感来源：[Vedal](https://github.com/vedal) 与他的 AI 主播 **Neuro-sama** ——
 > 那个一边满嘴跑火车、一边被 `filtered.` 哔掉的家伙。本插件就是把这套"出口消音"

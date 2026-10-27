@@ -19,6 +19,11 @@
   展示图居中 420px 置于该章节
 - 「效果演示」章节不再放大图，直接进三个行为示例（逐词打码 / 整句吞噬 / 全灭兜底）
 - 安装目录树补全 `assets/`（该目录现为 `base_words.json` / `chibi.jpg` / `icon.png` / `showcase.png`）
+- **市场审核整改（2026-10-27）**：`plugin_type` 由自造的 `behavior` 改为文档登记值 **`extension`**
+  （清单见 `维护文档`：`adapter`/`tool`/`provider`/`management`/`data`/`media`/`game`/`integration`/`extension`/`other`；
+  `behavior` 不在其中）。版本号仍为 **1.0.0**，不改号。
+- **`assets/icon.png` 压缩**：941187 B → **298713 B**（1024×1024 256 色调色板），
+  规避宿主 `GET /icon/{plugin_id}` 的 512 KB 上限（超限会 400「插件图标文件过大」）
 
 ## 0.2.6（2026-10-26）
 

@@ -10,7 +10,7 @@
 
   <!-- Badges -->
   <p>
-    <img src="https://img.shields.io/badge/Version-1.0.1-e11d48?style=flat-square&labelColor=1e293b" alt="Version 1.0.1">
+    <img src="https://img.shields.io/badge/Version-1.1.0-e11d48?style=flat-square&labelColor=1e293b" alt="Version 1.1.0">
     <img src="https://img.shields.io/badge/MaiBot-%3E%3D1.3.0-be123c?style=flat-square&labelColor=1e293b" alt="MaiBot >= 1.3.0">
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square&labelColor=1e293b" alt="License: MIT"></a>
     <img src="https://img.shields.io/github/stars/NetaJuutilainen/maibot-plugin-mouth-filter?label=Stars&color=eab308&style=flat-square&labelColor=1e293b" alt="Stars">
@@ -20,7 +20,7 @@
   <p>
     <b>Neuro-sama 式嘴替打码</b> —— 该说的照说，脏的地方自动消音<br/>
     <b>词表驱动 · 零 Token 成本 · 微秒级延迟 · 零第三方依赖</b>（纯 Python 标准库）<br/>
-    <sub>插件 ID：<code>NetaJuutilainen.mai-mouth-filter</code> · 当前版本 <b>1.0.1</b> · 宿主 1.3.0 ~ 1.4.99 · SDK 2.5.0 ~ 2.22.99</sub>
+    <sub>插件 ID：<code>NetaJuutilainen.mai-mouth-filter</code> · 当前版本 <b>1.1.0</b> · 宿主 1.3.0 ~ 1.4.99 · SDK 2.5.0 ~ 2.23.99</sub>
   </p>
 
   <!-- Quick Navigation -->
@@ -108,17 +108,15 @@ plugins/NetaJuutilainen_mai-mouth-filter/
     └── showcase.png
 ```
 
-### 词表管理（两个来源，并集生效）
+### 词表管理（WebUI 单一词表，所见即所得）
 
-| 来源 | 初始内容 | 怎么改 | 生效方式 |
+自 `v1.1.0` 起，全部规则统一收敛到 WebUI 配置页（配置热重载**即时生效**，无需编辑任何服务器 JSON 文件）：
+
+| 规则类型 | 配置键 | 默认初始内容 | 说明 |
 |---|---|---|---|
-| `data/.../base_words.json` | 内置基础词表（37 词） | 直接编辑文件 | **即时生效**（插件每次回复检查文件变动） |
-| WebUI「附加词表」 | 空 | 插件配置页加删 | 配置热重载**即时生效** |
-
-> [!TIP]
-> 内置词表首次加载时从 `assets/base_words.json` 复制到 data 目录，**升级插件不会覆盖你改过的词表**。支持两类规则：
-> - **精确词**：子串匹配，英文不分大小写（`FUCK` / `fuck` / `Fuck` 都命中）
-> - **正则**：进阶用法，如 `滚.+出去` 匹配夹字变体；写错的正则自动跳过并日志提示，不会炸插件
+| **过滤词表（精确匹配）** | `filter_words` | 精修 32 词 | 子串匹配，英文不分大小写（`FUCK` / `fuck` / `Fuck` 都命中）；可直接在 WebUI 增删或清空 |
+| **上下文豁免词（白名单）** | `whitelist` | `你妈妈`, `你妈咪`, `种草你`, `去死磕`, `USB` | 包含豁免词的正文区间受保护，不会被过滤规则误伤 |
+| **正则规则** | `regexes` | 空 | 进阶用法，如 `滚.+出去` 匹配夹字变体；写错的正则自动跳过并日志提示，不会炸插件 |
 
 ---
 
@@ -130,7 +128,9 @@ plugins/NetaJuutilainen_mai-mouth-filter/
 | 启用过滤 | 开 | 关闭后 Hook 直接放行 |
 | 替换占位符池 | `*已过滤*`, `*Filtered*` | 想加 `▇▇▇`、`*哔*` 往列表里添 |
 | 整句吞噬概率 | `0.2` | `0` = 关闭；`1` = 命中必吞 |
-| 附加词表 / 附加正则 | 空 | 与 data 词表并集生效 |
+| 过滤词表（精确匹配） | 精修 32 词 | 单一词表，WebUI 直接增删改 |
+| 上下文豁免词（白名单） | 5 个常见豁免词 | 保护合法复合词（如「你妈妈」「USB」）不被子串误杀 |
+| 正则规则 | 空 | 进阶正则匹配，忽略大小写 |
 | 兜底替代语 | `“这段话被麦麦自己咽回去了”` | 全灭时改发；整句替换路径已跳过宿主后处理，带符号安全 |
 | 记录命中日志 | 开 | 每次打码记一条（会话、规则、次数），**不落原文** |
 | 记录每次触发 | 关 | 调试 / 验证部署用，平时保持关闭 |
@@ -149,7 +149,9 @@ plugins/NetaJuutilainen_mai-mouth-filter/
 <details>
 <summary><b>2. 词表误杀了正常用语怎么办？</b></summary>
 
-例：词表里的「你妈」会命中「你妈妈做的饭真好吃」。两个处理办法：直接编辑 data 词表删掉该词（即时生效），或换更精确的词（如「你妈的」）。
+两个零门槛处理办法（均在 WebUI 配置页直接修改、即时生效）：
+1. **加进「上下文豁免词（白名单）」**：例如词表有「你妈」，把「你妈妈」加入豁免词后，「我不是你妈妈」就会完整保留，而真正的骂人语境照常消音。
+2. **直接编辑「过滤词表」**：删掉觉得过严的词，或改成更精准的组合词。
 </details>
 
 <details>
@@ -168,11 +170,11 @@ plugins/NetaJuutilainen_mai-mouth-filter/
 <summary><b>🧪 展开查看：开发与离线单测</b></summary>
 
 ```bash
-python tests/test_core.py   # 34 条离线单测，零依赖直接跑
+python tests/test_core.py   # 46 条离线单测，零依赖直接跑
 ```
 
-- `mouth_filter_core.py`：匹配纯函数（零 SDK 依赖）
-- `plugin.py`：Hook / 配置模型 / 词表存储装配
+- `mouth_filter_core.py`：Span 区间匹配与豁免保护纯函数（零 SDK 依赖）
+- `plugin.py`：Hook / 配置模型 / 旧版词表归档装配
 
 </details>
 

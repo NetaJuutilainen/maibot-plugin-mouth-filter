@@ -9,6 +9,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mouth_filter_core import (
+    DEFAULT_WHITELIST,
+    DEFAULT_WORDS,
     CompiledRules,
     _normalize_replacements,
     compile_rules,
@@ -147,6 +149,36 @@ check("吞噬频率≈设定值(0.5, 2000 次)", 850 <= swallowed <= 1150, f"swa
 
 clean_kept = all(simulate("今天天气不错", ["傻逼"], POOL, "x", 1.0, rng)[2] == "pass" for _ in range(100))
 check("干净回复永不吞噬(概率=1 也不吞)", clean_kept)
+
+# --- 上下文豁免词（白名单）与 Span 区间保护 ---------------------------------------
+r = compile_rules(["你妈", "傻逼", "SB", "草你", "去死"], [r"滚(出?去)"], whitelist=["你妈妈", "USB", "种草你", "去死磕"])
+out, hits = filter_text("我不是你妈妈", r, [REPL])
+check("豁免词保护你妈妈不被你妈误杀", out == "我不是你妈妈" and hits == [], out)
+
+out, hits = filter_text("这个usb接口真傻逼", r, [REPL])
+check("豁免词大小写忽略(USB保护)且同句脏话照打码", out == f"这个usb接口真{REPL}" and len(hits) == 1, out)
+
+out, hits = filter_text("我给你种草你还不乐意，去死磕吧", r, [REPL])
+check("多豁免词共存零误杀", out == "我给你种草你还不乐意，去死磕吧" and hits == [], out)
+
+# --- 避免链式二次命中 -----------------------------------------------------------
+r = compile_rules(["傻逼", "已过滤"], [])
+out, hits = filter_text("你个傻逼", r, [REPL])
+check("一次性拼接不触发二次替换", out == f"你个{REPL}" and len(hits) == 1, out)
+
+# --- 零宽正则安全跳过 -----------------------------------------------------------
+r = compile_rules([], [r"^", r"(?=a)"])
+out, hits = filter_text("abc", r, [REPL])
+check("零宽正则安全跳过不插空", out == "abc" and hits == [], out)
+
+# --- 精修默认词表 + 默认豁免词组合核验 -------------------------------------------
+default_rules = compile_rules(list(DEFAULT_WORDS), [], list(DEFAULT_WHITELIST))
+for safe_msg in ("我不是你妈妈", "今日你开心吗", "去干你的正事", "插上USB接口", "我种草你很久了", "今天去死磕算法"):
+    out, hits = filter_text(safe_msg, default_rules, [REPL])
+    check(f"默认规则零误杀: {safe_msg}", out == safe_msg and hits == [], out)
+
+out, hits = filter_text("你个傻逼快滚蛋", default_rules, [REPL])
+check("默认规则真脏话正常拦截", out == f"你个{REPL}快{REPL}" and len(hits) == 2, out)
 
 print(f"\n{_passed} passed, {len(_failed)} failed")
 sys.exit(1 if _failed else 0)

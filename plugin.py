@@ -4,12 +4,12 @@
 后处理**之前**经过本插件，命中的脏话/过分词句被替换为占位符
 （默认 ``*已过滤*``），该说的照说、脏的地方自动消音。
 
-词表两个来源，并集生效：
-    data/base_words.json   基础词表（首次加载从 assets 复制，用户可直改文件，
-                           升级不覆盖；文件变化即时重载）
-    [filter].words/regexes WebUI 里增删的附加词表（配置热重载即时生效）
+v1.1.0 起采用单一词表配置，全部规则均在 WebUI 直接可见与增删，热重载即时生效：
+    [filter].filter_words  过滤词表（精确匹配，忽略英文大小写）
+    [filter].whitelist     上下文豁免词（白名单，保护区间内不被过滤）
+    [filter].regexes       正则规则（进阶用法，忽略大小写）
 
-模块划分：plugin.py 装配（Hook/配置/存储）；mouth_filter_core.py 匹配纯函数
+模块划分：plugin.py 装配（Hook/配置/旧数据兼容）；mouth_filter_core.py 匹配纯函数
 （零 SDK 依赖，可离线单测）。
 """
 
@@ -42,11 +42,14 @@ def _load_sibling_module(stem: str) -> Any:
 
 
 _core = _load_sibling_module("mouth_filter_core")
+DEFAULT_WHITELIST = _core.DEFAULT_WHITELIST
+DEFAULT_WORDS = _core.DEFAULT_WORDS
+LEGACY_BASE_WORDS = _core.LEGACY_BASE_WORDS
 compile_rules = _core.compile_rules
 filter_text = _core.filter_text
 is_effectively_empty = _core.is_effectively_empty
 
-SUPPORTED_CONFIG_VERSION = "1.0.1"  # 与 manifest version 保持同步（1.0.0 = 正式版）
+SUPPORTED_CONFIG_VERSION = "1.1.0"  # 与 manifest version 保持同步
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +92,7 @@ class FilterSection(PluginConfigBase):
     enabled: bool = _ui_field("启用过滤", "关闭后 Hook 直接放行，不改动任何正文", default=True)
     replacements: list[str] = _ui_field(
         "替换占位符池",
-        "每个被消音的位置随机选一个，如 *已过滤* / *Filter* / ▇▇▇",
+        "每个被消音的位置随机选一个，如 *已过滤* / *Filtered* / ▇▇▇",
         default_factory=lambda: ["*已过滤*", "*Filtered*"],
     )
     whole_reply_chance: float = _ui_field(
@@ -99,11 +102,20 @@ class FilterSection(PluginConfigBase):
         ge=0.0,
         le=1.0,
     )
-    words: list[str] = _ui_field(
-        "附加词表（精确匹配）", "子串匹配，英文不分大小写；与 data 目录的基础词表并集生效", default_factory=list
+    filter_words: list[str] = _ui_field(
+        "过滤词表（精确匹配）",
+        "子串匹配，英文不分大小写；可直接增删或清空默认词表，修改保存后即时生效",
+        default_factory=lambda: list(DEFAULT_WORDS),
+    )
+    whitelist: list[str] = _ui_field(
+        "上下文豁免词（白名单）",
+        "包含这些词的片段不会被过滤（如「你妈妈」保护其中的「你妈」），忽略大小写",
+        default_factory=lambda: list(DEFAULT_WHITELIST),
     )
     regexes: list[str] = _ui_field(
-        "附加正则规则", "进阶用法，忽略大小写；写错的正则会被跳过并在日志提示", default_factory=list
+        "正则规则",
+        "进阶用法，忽略大小写；写错的正则会被跳过并在日志提示",
+        default_factory=list,
     )
     fallback_text: str = _ui_field(
         "兜底替代语",
@@ -124,55 +136,6 @@ class MouthFilterConfig(PluginConfigBase):
 
 
 # ---------------------------------------------------------------------------
-# 基础词表存储（data 目录，升级不覆盖）
-# ---------------------------------------------------------------------------
-
-class WordStore:
-    """data 目录词表 JSON：首次加载从插件 assets 复制，之后文件优先；
-    Hook 每次调用检查 mtime，用户直改文件即时生效。"""
-
-    def __init__(self, path: Path, default_asset: Path) -> None:
-        self.path = Path(path)
-        self.default_asset = Path(default_asset)
-        self.words: list[str] = []
-        self.regexes: list[str] = []
-        self._stamp: tuple[float, int] | None = None
-
-    def load(self) -> None:
-        if not self.path.exists() and self.default_asset.exists():
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.path.write_text(self.default_asset.read_text(encoding="utf-8"), encoding="utf-8")
-        self._read()
-
-    def reload_if_changed(self) -> None:
-        try:
-            stat = self.path.stat()
-        except OSError:
-            return
-        stamp = (stat.st_mtime, stat.st_size)
-        if stamp != self._stamp:
-            self._read()
-
-    def _read(self) -> None:
-        try:
-            data = json.loads(self.path.read_text(encoding="utf-8"))
-            self.words = [str(w) for w in (data.get("words") or []) if str(w).strip()]
-            self.regexes = [str(r) for r in (data.get("regexes") or []) if str(r).strip()]
-            self._stamp = self._stat()
-        except (OSError, ValueError) as e:
-            self.words, self.regexes = [], []  # 文件坏了也不炸 Hook，退化为仅 config 词表
-            self._stamp = self._stat()
-            raise RuntimeError(f"基础词表 {self.path.name} 解析失败: {e}") from e
-
-    def _stat(self) -> tuple[float, int] | None:
-        try:
-            stat = self.path.stat()
-            return (stat.st_mtime, stat.st_size)
-        except OSError:
-            return None
-
-
-# ---------------------------------------------------------------------------
 # 插件主体
 # ---------------------------------------------------------------------------
 
@@ -183,22 +146,54 @@ class MouthFilterPlugin(MaiBotPlugin):
 
     def __init__(self) -> None:
         super().__init__()
-        self._store: WordStore | None = None
+        self._legacy_extra_words: list[str] = []
+        self._legacy_extra_regexes: list[str] = []
+
+    def _handle_legacy_base_words(self) -> None:
+        """兼容处理 1.0.x 遗留的 data/base_words.json：
+        - 若内容与 1.0.x 默认词表一致，直接归档为 base_words.json.migrated；
+        - 若用户曾手工在文件中添加过自定义词/正则，运行期继续兜底生效并提示迁入 WebUI。
+        """
+        legacy_path = self.ctx.paths.data_dir / "base_words.json"
+        if not legacy_path.exists():
+            return
+
+        try:
+            data = json.loads(legacy_path.read_text(encoding="utf-8"))
+            legacy_words = [str(w).strip() for w in (data.get("words") or []) if str(w).strip()]
+            legacy_regexes = [str(r).strip() for r in (data.get("regexes") or []) if str(r).strip()]
+        except (OSError, ValueError) as e:
+            self.ctx.logger.warning("[嘴替过滤] 读取旧版 %s 失败，已跳过: %s", legacy_path.name, e)
+            return
+
+        extra_words = [w for w in legacy_words if w not in LEGACY_BASE_WORDS]
+        if not extra_words and not legacy_regexes:
+            migrated_path = legacy_path.with_name("base_words.json.migrated")
+            try:
+                if migrated_path.exists():
+                    migrated_path.unlink()
+                legacy_path.rename(migrated_path)
+                self.ctx.logger.info("[嘴替过滤] 旧版默认词表已归档为 %s，现统一使用 WebUI 单一词表", migrated_path.name)
+            except OSError as e:
+                self.ctx.logger.warning("[嘴替过滤] 归档旧词表 %s 失败: %s", legacy_path.name, e)
+        else:
+            self._legacy_extra_words = extra_words
+            self._legacy_extra_regexes = legacy_regexes
+            self.ctx.logger.warning(
+                "[嘴替过滤] 检测到旧版 base_words.json 含自定义项（%d 词 / %d 正则），当前已兼容叠加生效；"
+                "建议将其移入 WebUI 配置并删除 data/base_words.json",
+                len(extra_words),
+                len(legacy_regexes),
+            )
 
     async def on_load(self) -> None:
-        self._store = WordStore(
-            self.ctx.paths.data_dir / "base_words.json",
-            _PLUGIN_DIR / "assets" / "base_words.json",
-        )
-        try:
-            self._store.load()
-        except RuntimeError as e:
-            self.ctx.logger.warning("%s（已退化为仅用 WebUI 附加词表）", e)
+        self._handle_legacy_base_words()
         cfg = self.config.filter
         self.ctx.logger.info(
-            "麦麦不要说辣个啦（嘴替过滤器）已加载：基础词表 %d 词 / %d 正则，WebUI 附加 %d 词 / %d 正则，占位符池 %r，整句吞噬概率 %.0f%%",
-            len(self._store.words), len(self._store.regexes),
-            len(cfg.words or []), len(cfg.regexes or []),
+            "麦麦不要说辣个啦（嘴替过滤器）已加载：过滤词表 %d 词 / %d 豁免词 / %d 正则，占位符池 %r，整句吞噬概率 %.0f%%",
+            len(cfg.filter_words or []) + len(self._legacy_extra_words),
+            len(cfg.whitelist or []),
+            len(cfg.regexes or []) + len(self._legacy_extra_regexes),
             list(cfg.replacements or []),
             float(cfg.whole_reply_chance or 0) * 100,
         )
@@ -221,14 +216,11 @@ class MouthFilterPlugin(MaiBotPlugin):
 
         cfg = self.config.filter
         pool = [str(r) for r in (cfg.replacements or []) if str(r).strip()] or ["*已过滤*"]
-        if self._store:
-            self._store.reload_if_changed()
-            words = list(self._store.words) + [str(w) for w in (cfg.words or [])]
-            regexes = list(self._store.regexes) + [str(r) for r in (cfg.regexes or [])]
-        else:
-            words = [str(w) for w in (cfg.words or [])]
-            regexes = [str(r) for r in (cfg.regexes or [])]
-        rules = compile_rules(words, regexes)
+        words = [str(w) for w in (cfg.filter_words or [])] + self._legacy_extra_words
+        regexes = [str(r) for r in (cfg.regexes or [])] + self._legacy_extra_regexes
+        whitelist = [str(w) for w in (cfg.whitelist or [])]
+
+        rules = compile_rules(words, regexes, whitelist)
         if rules.invalid and cfg.log_hits:
             self.ctx.logger.warning("[嘴替过滤] %d 条正则编译失败已跳过: %s", len(rules.invalid), rules.invalid)
 
@@ -270,7 +262,7 @@ class MouthFilterPlugin(MaiBotPlugin):
         self.ctx.logger.info("麦麦不要说辣个啦（嘴替过滤器）已卸载")
 
     async def on_config_update(self, scope: str, config_data: dict[str, Any], version: str) -> None:
-        # 词表每次 Hook 现读 config + data 文件（mtime 检查），无需重建组件
+        # 词表每次 Hook 现读 config，无需重建组件
         if scope == CONFIG_RELOAD_SCOPE_SELF:
             self.ctx.logger.info("嘴替过滤器配置已热更新 version=%s", version)
 
